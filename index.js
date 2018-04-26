@@ -1,24 +1,9 @@
 var GoogleSpreadsheet = require("google-spreadsheet");
-var through2 = require('through2');
-var _ = require('lodash');
-var File = require('vinyl');
-var gutil = require('gulp-util');
-
-function createI18nFile(language, content) {
-    return new File({
-        cwd: "/",
-        base: "/",
-        path: "/" + language + '.json',
-        contents: new Buffer(content)
-    });
-}
-
 
 function loadSpreadsheet(options, cb) {
-    //https://github.com/theoephraim/node-google-spreadsheet
+
     var my_sheet = new GoogleSpreadsheet(options.key);
 
-    // takes service account info
     if (options.private_key_id) {
         options.type = 'service_account';
         my_sheet.useServiceAccountAuth({
@@ -101,28 +86,20 @@ function processSpreadsheet(my_sheet, options, cb) {
 function gulpI18n(options) {
 
     if (!options) {
-        new gutil.PluginError('gulp-translations-from-spreadsheet', 'Missing options!');
+        throw new Error('Missing options!')
     }
-
-    var stream = through2.obj(function (content, enc, cb) {
-        var self = this;
-        _.each(content, function (value, key) {
-            var lFile = createI18nFile(key, JSON.stringify(value));
-            self.push(lFile);
+    
+    return new Promise((resolve, reject) => {
+        loadSpreadsheet(options, function (err, data) {
+            if (err) {
+                throw err;
+            } else {
+                resolve(data)
+            }
+            
         });
-        cb();
-    });
-
-    loadSpreadsheet(options, function (err, data) {
-        if (err) {
-            new gutil.PluginError('gulp-translations-from-spreadsheet', err);
-            stream.write({ err: err });
-        } else {
-            stream.write(data);
-        }
-        stream.end();
-    });
-    return stream;
+    })
+    
 }
 
 module.exports = gulpI18n;
